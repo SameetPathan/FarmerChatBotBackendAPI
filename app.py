@@ -1,5 +1,6 @@
 import datetime
 import urllib
+import os
 import firebase_admin
 import requests
 from anthropic import Anthropic
@@ -96,7 +97,7 @@ def store_in_firebase(phone_number, query, response, source_language):
         return False
 
 
-@app.route('/api/chat', methods=['POST'])
+@app.route('/agriculture/chat', methods=['POST'])
 def chat_endpoint():
     try:
         data = request.json
@@ -129,13 +130,39 @@ def chat_endpoint():
         search_content = get_google_search_content(english_query)
         print(search_content)
         anthropic = Anthropic(
-            api_key='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')
-        prompt = f"""Query: {english_query}
+            api_key=os.environ.get('AnthropicApiKey'))
+        prompt = f"""You are an AI agricultural expert tasked with providing comprehensive and practical advice based on a given query and recent search results. Your goal is to offer clear, actionable information that addresses the user's question while incorporating relevant details from the provided search content.
 
-        Recent information from search:
-        {search_content}
-
-        Please provide a comprehensive answer about agriculture based on the above information."""
+            Here is the search content related to the query:
+            <search_content>
+            {search_content}
+            </search_content>
+            
+            Carefully analyze the search content, focusing on the following aspects:
+            1. Identify key information relevant to the query
+            2. Note any statistical data, research findings, or expert opinions
+            3. Look for practical advice, best practices, or innovative techniques
+            4. Consider any regional or climate-specific information
+            
+            Now, address the following query:
+            <query>
+            {english_query}
+            </query>
+            
+            When formulating your response:
+            1. Directly answer the query using information from the search content
+            2. Provide practical, actionable advice for farmers or agricultural professionals
+            3. Include relevant statistics or research findings to support your recommendations
+            4. Consider potential challenges or limitations and offer solutions when possible
+            5. If appropriate, suggest sustainable or environmentally friendly practices
+            6. Avoid speculation or information not supported by the provided content
+            
+            Present your answer in the following format strictly respond in below format only do not add any additional information before or after tags :
+            <agricultural_advice>
+            [Your comprehensive answer here, structured in clear paragraphs]
+            </agricultural_advice>
+            
+            Ensure your response is thorough, informative, and tailored to the specific query while leveraging the provided search content."""
 
         ai_response = anthropic.messages.create(
             model="claude-3-haiku-20240307",
