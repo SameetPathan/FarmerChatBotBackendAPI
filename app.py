@@ -104,7 +104,7 @@ def chat_endpoint():
         source_language = data.get('source_language', '').lower()
         query = data.get('query', '')
         user_phone = data.get('userphone', '')
-        print(request.json)
+        print("Request:", request.json)
         if not all([source_language, query, user_phone]):
             return jsonify({
                 'success': False,
@@ -117,6 +117,9 @@ def chat_endpoint():
                 'message': 'Unsupported language'
             })
 
+        anthropic_api_key = os.environ.get('AnthropicApiKey')
+        print("AnthropicApiKey: ",anthropic_api_key)
+
         english_query = query
         if source_language != 'english':
 
@@ -126,11 +129,11 @@ def chat_endpoint():
                     'success': False,
                     'message': 'Translation failed'
                 })
-        print(english_query)
+        print("English Query:", english_query)
         search_content = get_google_search_content(english_query)
-        print(search_content)
+        print("Search Content", search_content)
         anthropic = Anthropic(
-            api_key=os.environ.get('AnthropicApiKey'))
+            api_key=anthropic_api_key)
         prompt = f"""You are an AI agricultural expert tasked with providing comprehensive and practical advice based on a given query and recent search results. Your goal is to offer clear, actionable information that addresses the user's question while incorporating relevant details from the provided search content.
 
             Here is the search content related to the query:
@@ -173,10 +176,8 @@ def chat_endpoint():
             }],
             system="You are an agricultural expert. Provide clear and practical advice based on the query and search results."
         )
-        print(ai_response)
-
         english_response = ai_response.content[0].text
-
+        print("AI Response:", english_response)
 
         final_response = english_response
         if source_language != 'english':
@@ -186,20 +187,16 @@ def chat_endpoint():
                     'success': False,
                     'message': 'Response translation failed'
                 })
-
         storage_success = store_in_firebase(user_phone, query, final_response, source_language)
-
         return jsonify({
             'success': True,
             'message': final_response,
             'storage_success': storage_success
         })
-
     except Exception as e:
         error_message = f"An error occurred: {str(e)}"
         if source_language != 'english':
             error_message = translate_text(error_message, 'en', LANGUAGE_CODES[source_language])
-
         return jsonify({
             'success': False,
             'message': error_message
